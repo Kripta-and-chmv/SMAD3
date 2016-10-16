@@ -1,4 +1,4 @@
-import matplotlib.pyplot as plt
+﻿import matplotlib.pyplot as plt
 import sympy as sp
 import numpy as np
 import func as f
@@ -26,9 +26,9 @@ est_e = f.parameter_estimation_error(np.float32(Y), est_y)
 est_sigma_2 = f.parameter_estimation_sigma_2(est_e, N)
 check = f.check_adequacy_of_the_model(sigma, est_sigma_2)
 intervals, XtX_1 = f.calculate_freq_intervals_for_param(N, est_tetta, est_sigma_2, np.float32(matr_X))
-check_1 = f.check_param_importance_of_the_model(est_tetta, est_sigma_2, XtX_1)
-check_2 = f.check_regres_importance_of_the_model(est_tetta, Y, np.float32(matr_X), N)
-#intervals_for_E = f.calculate_freq_intervals_for_Expected_value(N, est_tetta, est_sigma_2, x1, XtX_1, 1)
+check_1 = f.check_param_importance_of_the_model(est_tetta, est_sigma_2, np.float32(XtX_1))
+check_2 = f.check_regres_importance_of_the_model(est_tetta, Y, est_sigma_2, np.float32(matr_X), N)
+intervals_for_E = f.calculate_freq_intervals_for_Expected_value(N, est_tetta, est_sigma_2, x1, XtX_1, 1)
 print(check_1)
 #f.Graph(x1, y_x1_0)
 #f.Graph(x2, y_0_x2)

@@ -14,7 +14,7 @@ def func_4(x):
     return x ** 2
 
 def func_5(x):
-    return 1 / x
+    return x
 
 def create_X_matr(x1, x2, N):
     X = []
@@ -71,7 +71,8 @@ def calculate_freq_intervals_for_param(N, est_tetta, est_sigma_2, matr_X):
     est_sigma = math.sqrt(est_sigma_2)
     freq_intervals = [[], []]
     for i in range(5):
-       delta = st.t.ppf(alpha / 2, N - 5)
+       #delta = st.t.ppf(alpha / 2, N - 5)
+       delta = 2.0796
        XtX_1 = np.linalg.inv(np.matmul(matr_X.T, matr_X))
        delta = est_sigma * XtX_1[i][i]
        freq_intervals[0].append(est_tetta[i] - delta)
@@ -99,10 +100,14 @@ def check_regres_importance_of_the_model(est_tetta, Y, est_sigma_2, matr_X, N):
     #проверка гипотезы о значимости уравнения регрессии
     summ = .0
     est_tetta_0 = []
-    #YtY =  np.matmul(Y.T, Y)
-    #est_tet_t_XtY =  np.matmul( np.matmul(est_tetta.T, matr_X.T), Y)
-    #RSS = YtY - est_tet_t_XtY
-    RSS = (N - 5) / est_sigma_2
+    YtY =  np.matmul(Y.T, Y)
+    est_tet_t_XtY =  np.matmul( np.matmul(est_tetta.T, matr_X.T), Y)
+    RSS = (N - 5) * est_sigma_2
+    RSS1 = YtY - est_tet_t_XtY
+    for i in range(N):
+        summ += Y[i]
+    MY = summ / N
+    RSS_H1 = YtY - N * MY **2 
     est_tetta_0.append(est_tetta[0])
     for i in range(1, 5):
         est_tetta_0.append(.0)
@@ -111,8 +116,9 @@ def check_regres_importance_of_the_model(est_tetta, Y, est_sigma_2, matr_X, N):
     RSS_H = np.matmul(difY_XTet.T, difY_XTet)
     q = 4
     F = ((RSS_H - RSS) / q) / (RSS / (N - 5))
+    F1 = ((RSS_H1 - RSS1) / q) / (RSS1 / (N - 5))
     Ft = 2.8661
-    if F < Ft:
+    if F <= Ft:
         #не отвергается
         return True
     else:
@@ -121,36 +127,82 @@ def check_regres_importance_of_the_model(est_tetta, Y, est_sigma_2, matr_X, N):
 def calculate_freq_intervals_for_Expected_value(N,est_tetta, est_sigma_2, x, XtX_1, flag):
     est_sigma = math.sqrt(est_sigma_2)
     est_tett = np.array(est_tetta)
+    nu = []
+    delta = []
     freq_intervals = [[], []]
     alpha = 0.05
     if flag == 1:
-        f1 = []
-        f1.append(1.)
-        f1.append(func_2(x[0]))
-        f1.append(func_3(x[0]))
-        f1.append(.0)
-        f1.append(.0)
-        f1 = np.float32(np.array(f1))
-        nu = np.matmul(f1.T, est_tett)
-        tmp = np.matmul(np.matmul(f1.T, XtX_1), f1)
-        delta = est_sigma * math.sqrt(tmp)
-        delta *= st.t.ppf(alpha / 2, N - 5)
-        freq_intervals[0].append(nu - delta)
-        freq_intervals[1].append(nu + delta)
+        for i in range(N):
+            f1 = []
+            f1.append(1.)
+            f1.append(func_2(x[i]))
+            f1.append(func_3(x[i]))
+            f1.append(.0)
+            f1.append(.0)
+            f1 = np.float32(np.array(f1))
+            nu.append(np.matmul(f1.T, est_tett))
+            tmp = (np.matmul(np.matmul(f1.T, XtX_1), f1))
+            
+            delta.append(2.0796 * est_sigma * math.sqrt(tmp))
+            #delta *= st.t.ppf(alpha / 2, N - 5)
+        for j in range(N):
+            freq_intervals[0].append(nu[j] - delta[j])
+            freq_intervals[1].append(nu[j] + delta[j])
     else:
-        f2 = []
-        f2.append(.0)
-        f2.append(.0)
-        f2.append(.0)
-        f2.append(func_4(x[0]))
-        f2.append(func_5(x[0]))
-        f2 = np.array(f2)
-        nu = np.matmul(f2.T,  est_tetta)
-        delta = est_sigma * math.sqrt(np.matmul(np.matmul(f2.T, XtX_1), f2))
-        delta *= st.t.ppf(alpha / 2, N - 5)
-        freq_intervals[0].append(nu - delta)
-        freq_intervals[1].append(nu + delta)
-    return freq_intervals
+        for i in range(N):
+            f2 = []
+            f2.append(.0)
+            f2.append(.0)
+            f2.append(.0)
+            f2.append(func_4(x[i]))
+            f2.append(func_5(x[i]))
+            f2 = np.float32(np.array(f2))
+            nu.append(np.matmul(f2.T,  est_tett))
+        #delta = est_sigma * math.sqrt(np.matmul(np.matmul(f2.T, XtX_1), f2))
+        #delta *= st.t.ppf(alpha / 2, N - 5)
+        #freq_intervals[0].append(nu - delta)
+        #freq_intervals[1].append(nu + delta)
+    return nu, freq_intervals
+###############################
+def calculate_freq_intervals_for_response(N,est_tetta, est_sigma_2, x, XtX_1, flag):
+    est_sigma = math.sqrt(est_sigma_2)
+    est_tett = np.array(est_tetta)
+    est_y = []
+    delta = []
+    freq_intervals = [[], []]
+    alpha = 0.05
+    if flag == 1:
+        for i in range(N):
+            f1 = []
+            f1.append(1.)
+            f1.append(func_2(x[i]))
+            f1.append(func_3(x[i]))
+            f1.append(.0)
+            f1.append(.0)
+            f1 = np.float32(np.array(f1))
+            est_y.append(np.matmul(est_tett, f1))
+            tmp = (np.matmul(np.matmul(f1.T, XtX_1), f1))
+            
+            delta.append(2.0796 * est_sigma * (1 + tmp))
+            #delta *= st.t.ppf(alpha / 2, N - 5)
+        for j in range(N):
+            freq_intervals[0].append(est_y[j] - delta[j])
+            freq_intervals[1].append(est_y[j] + delta[j])
+    else:
+        for i in range(N):
+            f2 = []
+            f2.append(.0)
+            f2.append(.0)
+            f2.append(.0)
+            f2.append(func_4(x[i]))
+            f2.append(func_5(x[i]))
+            f2 = np.float32(np.array(f2))
+            #nu.append(np.matmul(f2.T,  est_tett))
+        #delta = est_sigma * math.sqrt(np.matmul(np.matmul(f2.T, XtX_1), f2))
+        #delta *= st.t.ppf(alpha / 2, N - 5)
+        #freq_intervals[0].append(nu - delta)
+        #freq_intervals[1].append(nu + delta)
+    return est_y, freq_intervals
 
 #################################
 def Func(X, Y):

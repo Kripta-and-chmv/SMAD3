@@ -14,7 +14,7 @@ def func_4(x):
     return x ** 2
 
 def func_5(x):
-    return x
+    return x ** 3
 
 def create_X_matr(x1, x2, N):
     X = []
@@ -25,7 +25,7 @@ def create_X_matr(x1, x2, N):
         X[i].append(func_3(x1[i]))
         X[i].append(func_4(x2[i]))
         X[i].append(func_5(x2[i]))
-    return np.array(X)
+    return np.array(X, dtype=float)
 
 def parameter_estimation_tetta(matr_X, Y):
     XtX = np.matmul(matr_X.T, matr_X)
@@ -48,16 +48,7 @@ def parameter_estimation_sigma_2(est_e, N):
 
 def check_adequacy_of_the_model(sigma, est_sigma_2):
     Ft = 1.5705
-    F = est_sigma_2 / sigma ** 2
-    ##########
-    #???? ??????
-    #alpha = 0.05
-    #p_value = st.f.cdf(F, 21, float('Inf'))
-    #if p_value > alpha:
-    #    return False
-    #else:
-    #    return True
-        
+    F = est_sigma_2 / sigma ** 2       
     if F <= Ft:
         #не отвергается
         return True
@@ -71,10 +62,8 @@ def calculate_freq_intervals_for_param(N, est_tetta, est_sigma_2, matr_X):
     est_sigma = math.sqrt(est_sigma_2)
     freq_intervals = [[], []]
     for i in range(5):
-       #delta = st.t.ppf(alpha / 2, N - 5)
-       delta = 2.0796
        XtX_1 = np.linalg.inv(np.matmul(matr_X.T, matr_X))
-       delta = est_sigma * XtX_1[i][i]
+       delta = 2.0860 * est_sigma * math.sqrt(XtX_1[i][i])
        freq_intervals[0].append(est_tetta[i] - delta)
        freq_intervals[1].append(est_tetta[i] + delta)
     return freq_intervals, XtX_1
@@ -126,8 +115,10 @@ def check_regres_importance_of_the_model(est_tetta, Y, est_sigma_2, matr_X, N):
 
 def calculate_freq_intervals_for_Expected_value(N,est_tetta, est_sigma_2, x, XtX_1, flag):
     est_sigma = math.sqrt(est_sigma_2)
+    tetta = np.array([1., 1., -1., 1., .0])
     est_tett = np.array(est_tetta)
     nu = []
+    nu_real = []
     delta = []
     freq_intervals = [[], []]
     alpha = 0.05
@@ -139,12 +130,11 @@ def calculate_freq_intervals_for_Expected_value(N,est_tetta, est_sigma_2, x, XtX
             f1.append(func_3(x[i]))
             f1.append(.0)
             f1.append(.0)
-            f1 = np.float32(np.array(f1))
+            f1 = np.array(f1, dtype=float)
             nu.append(np.matmul(f1.T, est_tett))
+            nu_real.append(np.matmul(f1.T, tetta ))
             tmp = (np.matmul(np.matmul(f1.T, XtX_1), f1))
-            
-            delta.append(2.0796 * est_sigma * math.sqrt(tmp))
-            #delta *= st.t.ppf(alpha / 2, N - 5)
+            delta.append(2.0860 * est_sigma * math.sqrt(tmp))
         for j in range(N):
             freq_intervals[0].append(nu[j] - delta[j])
             freq_intervals[1].append(nu[j] + delta[j])
@@ -156,13 +146,14 @@ def calculate_freq_intervals_for_Expected_value(N,est_tetta, est_sigma_2, x, XtX
             f2.append(.0)
             f2.append(func_4(x[i]))
             f2.append(func_5(x[i]))
-            f2 = np.float32(np.array(f2))
+            f2 = np.array(f2, dtype=float)
             nu.append(np.matmul(f2.T,  est_tett))
-        #delta = est_sigma * math.sqrt(np.matmul(np.matmul(f2.T, XtX_1), f2))
-        #delta *= st.t.ppf(alpha / 2, N - 5)
-        #freq_intervals[0].append(nu - delta)
-        #freq_intervals[1].append(nu + delta)
-    return nu, freq_intervals
+            tmp = (np.matmul(np.matmul(f2.T, XtX_1), f2))
+            delta.append(2.0860 * est_sigma * math.sqrt(tmp))
+        for j in range(N):
+            freq_intervals[0].append(nu[j] - delta[j])
+            freq_intervals[1].append(nu[j] + delta[j])
+    return nu, freq_intervals, nu_real
 ###############################
 def calculate_freq_intervals_for_response(N,est_tetta, est_sigma_2, x, XtX_1, flag):
     est_sigma = math.sqrt(est_sigma_2)
@@ -179,12 +170,10 @@ def calculate_freq_intervals_for_response(N,est_tetta, est_sigma_2, x, XtX_1, fl
             f1.append(func_3(x[i]))
             f1.append(.0)
             f1.append(.0)
-            f1 = np.float32(np.array(f1))
+            f1 = np.array(f1, dtype=float)
             est_y.append(np.matmul(est_tett, f1))
             tmp = (np.matmul(np.matmul(f1.T, XtX_1), f1))
-            
             delta.append(2.0796 * est_sigma * (1 + tmp))
-            #delta *= st.t.ppf(alpha / 2, N - 5)
         for j in range(N):
             freq_intervals[0].append(est_y[j] - delta[j])
             freq_intervals[1].append(est_y[j] + delta[j])
@@ -196,59 +185,51 @@ def calculate_freq_intervals_for_response(N,est_tetta, est_sigma_2, x, XtX_1, fl
             f2.append(.0)
             f2.append(func_4(x[i]))
             f2.append(func_5(x[i]))
-            f2 = np.float32(np.array(f2))
-            #nu.append(np.matmul(f2.T,  est_tett))
-        #delta = est_sigma * math.sqrt(np.matmul(np.matmul(f2.T, XtX_1), f2))
-        #delta *= st.t.ppf(alpha / 2, N - 5)
-        #freq_intervals[0].append(nu - delta)
-        #freq_intervals[1].append(nu + delta)
+            f2 = np.array(f2, dtype=float)
+            est_y.append(np.matmul(est_tett, f2))
+            tmp = (np.matmul(np.matmul(f2.T, XtX_1), f2))
+            delta.append(2.0796 * est_sigma * (1 + tmp))
+        for j in range(N):
+            freq_intervals[0].append(est_y[j] - delta[j])
+            freq_intervals[1].append(est_y[j] + delta[j])
     return est_y, freq_intervals
+####################################
+def get_x1_x2(fname):
+    str_file = []
+    x1 = []
+    x2 = []
+    with open(fname, 'r') as f:
+        for line in f:
+            str_file.append(line)
+    for i in range(1, len(str_file)):
+        s = str_file[i].expandtabs(1).rstrip()
+        x1_el, x2_el = s.split('  ')
+        x1.append(float(x1_el))
+        x2.append(float(x2_el))
+    return x1, x2
+
+def get_y(fname):
+    str_file = []
+    y = []
+    with open(fname, 'r') as f:
+        for line in f:
+            str_file.append(line)
+    for i in range(1, len(str_file)):
+        s = str_file[i].expandtabs(1).rstrip()
+        u, ej, y_el = s.split('  ')
+        y.append(float(y_el))
+    return y
 
 #################################
-def Func(X, Y):
-    return 1 + X - sp.exp(-X ** 2) + Y ** 2
 
-def FindMean(x, y, U):
-    N = len(x)
-    mean = .0
-    for i in range(N):
-        U[i] = Func(x[i], y[i])
-        mean += U[i]
-    mean = mean / N
-    return mean
 
-def Graph(x, y):
-    p1 = plt.plot(x, y, 'ro')
+def Graph(x, y, Y):
+    y1 = y[0]
+    y2 = y[1]
+    p1 = plt.plot(x, y1, 'r.')
+    p2 = plt.plot(x, y2, 'b.')
+    p3 = plt.plot(x, Y, 'g.')
     plt.show()
 
-def WritingInFile(names, sequences, fileName):
-    with open(fileName, 'w') as f:
-        for i in range(len(names)):
-            f.write(names[i] + ':\n')
-            for j in range(len(sequences[i])):
-                f.write('\t' + str(sequences[i][j]) + '\n')
 
-def FindResponds(x1, x2, outputFile, N):
-    p = 0.08
-    w2 = .0
-    dispers = .0
-    U = np.zeros(N)
-    y = np.zeros(N)
-    tr = .0
 
-    mean = FindMean(x1, x2, U)
-    
-    for i in range(N):        
-        tr = U[i] - mean
-        w2 += tr ** 2
-
-    w2 = w2 / (N - 1)
-    dispers = math.sqrt(p * w2)
-    ej = np.random.normal(0, dispers, N)
-
-    for i in range(N):
-        y[i] = U[i] + ej[i]
-    
-    WritingInFile(['U', 'ej', 'y'], [U, ej, y], outputFile)
-
-    return y, dispers
